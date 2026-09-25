@@ -19,9 +19,26 @@ st.markdown("""
 [data-testid="stToolbar"] { display:none !important; }
 [data-testid="stStatusWidget"] { display:none !important; }
 [data-testid="stAppViewContainer"] { padding-top:0 !important; }
-[data-testid="stBottomBlockContainer"] { background:transparent !important; border-top:0 !important; box-shadow:none !important; }
-[data-testid="stBottomBlockContainer"] > div { background:transparent !important; }
-[data-testid="stChatInput"] { background:transparent !important; }
+/* Completely neutralize Streamlit's bottom chat container/background. */
+section[data-testid="stBottomBlockContainer"],
+div[data-testid="stBottomBlockContainer"],
+[data-testid="stBottomBlockContainer"] > div,
+[data-testid="stBottomBlockContainer"] > div > div {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+section[data-testid="stBottomBlockContainer"]::before,
+section[data-testid="stBottomBlockContainer"]::after,
+[data-testid="stBottomBlockContainer"]::before,
+[data-testid="stBottomBlockContainer"]::after {
+    display: none !important;
+    content: none !important;
+    background: transparent !important;
+}
+[data-testid="stChatInput"] { background: transparent !important; }
+
 
 .stApp {
     background:
@@ -82,9 +99,43 @@ div[data-testid="stTextInput"] input::placeholder {
     opacity:1!important;
 }
 button[kind="primary"] { border:0!important; border-radius:15px!important; background:linear-gradient(135deg,#17a9da,#6465e8)!important; color:white!important; font-weight:800!important; box-shadow:0 12px 28px rgba(72,113,226,.22)!important; }
-.stTabs [data-baseweb="tab-list"] { gap:8px; background:rgba(228,237,247,.70); padding:6px; border-radius:17px; }
-.stTabs [data-baseweb="tab"] { border-radius:12px; color:#60758b; }
-.stTabs [aria-selected="true"] { background:white!important; color:#1a6f9b!important; box-shadow:0 5px 15px rgba(30,70,110,.08); }
+.stTabs [data-baseweb="tab-list"] {
+    gap:8px;
+    background:rgba(228,237,247,.78);
+    padding:6px;
+    border-radius:17px;
+    border:1px solid rgba(25,70,110,.08);
+}
+.stTabs [data-baseweb="tab"],
+.stTabs [role="tab"] {
+    border-radius:12px !important;
+    color:#49627b !important;
+    background:transparent !important;
+    font-weight:700 !important;
+    opacity:1 !important;
+}
+.stTabs [data-baseweb="tab"] *,
+.stTabs [role="tab"] * {
+    color:#49627b !important;
+    opacity:1 !important;
+    -webkit-text-fill-color:#49627b !important;
+}
+.stTabs [aria-selected="true"],
+.stTabs [role="tab"][aria-selected="true"] {
+    background:#ffffff !important;
+    color:#126f9e !important;
+    box-shadow:0 5px 15px rgba(30,70,110,.08);
+}
+.stTabs [aria-selected="true"] *,
+.stTabs [role="tab"][aria-selected="true"] * {
+    color:#126f9e !important;
+    -webkit-text-fill-color:#126f9e !important;
+}
+.stTabs [data-baseweb="tab-highlight"] {
+    background:#ff5d6c !important;
+    height:3px !important;
+    border-radius:999px !important;
+}
 div[data-testid="stChatInput"] {
     position:fixed!important;
     bottom:22px!important;
@@ -115,6 +166,23 @@ div[data-testid="stChatInput"] button {
     background:linear-gradient(135deg,#17a9da,#6465e8)!important;
     color:#fff!important;
     border-radius:13px!important;
+}
+
+/* Final Streamlit chrome overrides: the app owns the entire bottom area. */
+section[data-testid="stBottomBlockContainer"] {
+    background:transparent !important;
+    background-color:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    padding:0 !important;
+}
+section[data-testid="stBottomBlockContainer"] > div,
+section[data-testid="stBottomBlockContainer"] > div > div,
+section[data-testid="stBottomBlockContainer"] form {
+    background:transparent !important;
+    background-color:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
 }
 
 </style>
