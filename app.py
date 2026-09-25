@@ -14,7 +14,15 @@ st.set_page_config(page_title="Pathfinder AI", page_icon="✦", layout="wide", i
 # -----------------------------
 st.markdown("""
 <style>
-#MainMenu, header, footer, [data-testid="stDecoration"] { visibility: hidden !important; }
+#MainMenu, header, footer, [data-testid="stDecoration"] { display:none !important; visibility:hidden !important; }
+[data-testid="stHeader"] { display:none !important; height:0 !important; }
+[data-testid="stToolbar"] { display:none !important; }
+[data-testid="stStatusWidget"] { display:none !important; }
+[data-testid="stAppViewContainer"] { padding-top:0 !important; }
+[data-testid="stBottomBlockContainer"] { background:transparent !important; border-top:0 !important; box-shadow:none !important; }
+[data-testid="stBottomBlockContainer"] > div { background:transparent !important; }
+[data-testid="stChatInput"] { background:transparent !important; }
+
 .stApp {
     background:
       radial-gradient(circle at 8% 2%, rgba(75,190,255,.20), transparent 30%),
@@ -23,7 +31,7 @@ st.markdown("""
       #f5f9ff;
     color:#14243a;
 }
-.block-container { max-width:1180px; padding:26px 28px 150px; }
+.block-container { max-width:1180px; padding:26px 28px 190px; }
 .nav {
     position:sticky; top:14px; z-index:100;
     display:flex; align-items:center; justify-content:space-between; gap:18px;
@@ -59,13 +67,56 @@ h1 { font-size:clamp(44px,6vw,76px)!important; line-height:.98!important; letter
 .dot.done { background:#37b879; box-shadow:0 0 0 5px rgba(55,184,121,.10); }
 .spinner { width:14px; height:14px; border-radius:50%; border:2px solid #bfeaf5; border-top-color:#1aa9d5; animation:spin .8s linear infinite; flex:none; }
 @keyframes spin { to { transform:rotate(360deg); } }
-div[data-testid="stTextInput"] input { border-radius:17px!important; border:1px solid rgba(30,90,135,.13)!important; background:rgba(255,255,255,.90)!important; color:#172942!important; padding:15px 17px!important; box-shadow:0 10px 30px rgba(39,75,115,.06)!important; }
+div[data-testid="stTextInput"] input {
+    border-radius:17px!important;
+    border:1px solid rgba(30,90,135,.18)!important;
+    background:rgba(255,255,255,.94)!important;
+    color:#172942!important;
+    -webkit-text-fill-color:#172942!important;
+    padding:15px 17px!important;
+    box-shadow:0 10px 30px rgba(39,75,115,.07)!important;
+}
+div[data-testid="stTextInput"] input::placeholder {
+    color:#7d8fa3!important;
+    -webkit-text-fill-color:#7d8fa3!important;
+    opacity:1!important;
+}
 button[kind="primary"] { border:0!important; border-radius:15px!important; background:linear-gradient(135deg,#17a9da,#6465e8)!important; color:white!important; font-weight:800!important; box-shadow:0 12px 28px rgba(72,113,226,.22)!important; }
 .stTabs [data-baseweb="tab-list"] { gap:8px; background:rgba(228,237,247,.70); padding:6px; border-radius:17px; }
 .stTabs [data-baseweb="tab"] { border-radius:12px; color:#60758b; }
 .stTabs [aria-selected="true"] { background:white!important; color:#1a6f9b!important; box-shadow:0 5px 15px rgba(30,70,110,.08); }
-div[data-testid="stChatInput"] { position:fixed!important; bottom:20px!important; left:50%!important; transform:translateX(-50%); width:min(860px,calc(100% - 34px))!important; z-index:999; }
-div[data-testid="stChatInput"] > div { border-radius:22px!important; background:rgba(255,255,255,.90)!important; backdrop-filter:blur(24px)!important; border:1px solid rgba(25,70,110,.13)!important; box-shadow:0 18px 60px rgba(28,65,105,.18)!important; }
+div[data-testid="stChatInput"] {
+    position:fixed!important;
+    bottom:22px!important;
+    left:50%!important;
+    transform:translateX(-50%);
+    width:min(860px,calc(100% - 34px))!important;
+    z-index:999!important;
+    padding:0!important;
+    background:transparent!important;
+}
+div[data-testid="stChatInput"] > div {
+    border-radius:24px!important;
+    background:rgba(255,255,255,.96)!important;
+    backdrop-filter:blur(24px)!important;
+    border:1px solid rgba(25,70,110,.16)!important;
+    box-shadow:0 18px 60px rgba(28,65,105,.18)!important;
+}
+div[data-testid="stChatInput"] textarea {
+    color:#172942!important;
+    -webkit-text-fill-color:#172942!important;
+}
+div[data-testid="stChatInput"] textarea::placeholder {
+    color:#7d8fa3!important;
+    -webkit-text-fill-color:#7d8fa3!important;
+    opacity:1!important;
+}
+div[data-testid="stChatInput"] button {
+    background:linear-gradient(135deg,#17a9da,#6465e8)!important;
+    color:#fff!important;
+    border-radius:13px!important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
