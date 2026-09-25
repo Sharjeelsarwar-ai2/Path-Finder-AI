@@ -168,21 +168,41 @@ div[data-testid="stChatInput"] button {
     border-radius:13px!important;
 }
 
-/* Final Streamlit chrome overrides: the app owns the entire bottom area. */
-section[data-testid="stBottomBlockContainer"] {
-    background:transparent !important;
-    background-color:transparent !important;
-    border:none !important;
-    box-shadow:none !important;
-    padding:0 !important;
+/* Kill the Streamlit bottom shell behind the floating chat dock. */
+section[data-testid="stBottomBlockContainer"],
+[data-testid="stBottomBlockContainer"],
+[data-testid="stBottomBlockContainer"] > *,
+[data-testid="stBottomBlockContainer"] * {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
-section[data-testid="stBottomBlockContainer"] > div,
-section[data-testid="stBottomBlockContainer"] > div > div,
-section[data-testid="stBottomBlockContainer"] form {
-    background:transparent !important;
-    background-color:transparent !important;
-    border:none !important;
-    box-shadow:none !important;
+
+/* Some Streamlit builds use a class instead of the test id. */
+div[class*="stBottom"],
+section[class*="stBottom"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Keep only our actual chat field visible. */
+div[data-testid="stChatInput"] {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* Never let the bottom shell paint a dark strip. */
+.stApp > footer,
+.stApp footer,
+footer {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    background: transparent !important;
 }
 
 </style>
