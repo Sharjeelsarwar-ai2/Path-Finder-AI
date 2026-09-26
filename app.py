@@ -1,5 +1,7 @@
 import json
+import queue
 import re
+import threading
 from html import escape
 
 import streamlit as st
@@ -39,12 +41,12 @@ section[data-testid="stBottomBlockContainer"]::before, section[data-testid="stBo
 .activity:hover { transform:translateY(-3px) translateX(2px); border-color:rgba(193,116,142,.38); box-shadow:0 15px 30px rgba(169,94,119,.14); }
 .activity:before { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.44) 45%,transparent 70%); transform:translateX(-120%); animation:activityShimmer 2.4s ease-out .55s 1 both; }
 .activity:after { content:""; position:absolute; left:7px; top:38px; bottom:-16px; width:1px; background:linear-gradient(#d795a5,transparent); opacity:.48; transform-origin:top; animation:connectorIn .55s ease-out .18s both; }.activity:last-child:after { display:none; }
-.activity-row { position:relative; z-index:1; display:flex; align-items:center; gap:11px; color:#59403f; font-size:13px; transition:color .2s ease; }.activity:hover .activity-row { color:#7c4f63; }.activity .small { position:relative; z-index:1; }
+.activity-row { position:relative; z-index:1; display:flex; align-items:center; gap:11px; color:#59403f; font-size:13px; transition:color .2s ease; }.activity:hover .activity-row { color:#7c4f63; }.activity .small { position:relative; z-index:1; }.stream-feed { margin:12px 0 4px; padding:4px 0; }.stream-event { animation:activityIn .35s cubic-bezier(.2,.8,.2,1) both; }.stream-event .event-icon { display:inline-flex; align-items:center; justify-content:center; width:19px; height:19px; border-radius:50%; background:rgba(193,116,142,.12); color:#a55d78; font-family:'DM Mono',monospace; font-size:9px; }.stream-event.live .event-icon { background:rgba(142,115,157,.15); color:#765984; box-shadow:0 0 0 5px rgba(142,115,157,.07); animation:dotBreath 1.8s ease-in-out infinite; }
 .dot { width:8px; height:8px; border-radius:50%; background:#d18b9f; box-shadow:0 0 0 5px rgba(209,139,159,.13); flex:none; animation:dotBreath 2.2s ease-in-out infinite; }.dot.done { background:#8f739d; box-shadow:0 0 0 5px rgba(143,115,157,.12); animation:dotDone .7s ease-out both; }.spinner { width:14px; height:14px; border-radius:50%; border:2px solid rgba(190,127,145,.22); border-top-color:#b5657f; animation:spin .8s linear infinite,spinnerGlow 1.8s ease-in-out infinite; flex:none; }
 @keyframes spin { to { transform:rotate(360deg); } } @keyframes activityIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } } @keyframes activityShimmer { to { transform:translateX(120%); } } @keyframes connectorIn { from { transform:scaleY(0); opacity:0; } to { transform:scaleY(1); opacity:.48; } } @keyframes dotBreath { 0%,100% { box-shadow:0 0 0 5px rgba(209,139,159,.13); } 50% { box-shadow:0 0 0 8px rgba(209,139,159,.03); } } @keyframes dotDone { from { transform:scale(.4); opacity:.2; } 70% { transform:scale(1.25); } to { transform:scale(1); opacity:1; } } @keyframes spinnerGlow { 50% { filter:drop-shadow(0 0 4px rgba(181,101,127,.45)); } }
 div[data-testid="stTextInput"] input { border-radius:12px!important; border:1px solid rgba(112,77,73,.18)!important; background:rgba(255,252,249,.92)!important; color:#493635!important; -webkit-text-fill-color:#493635!important; padding:15px 16px!important; box-shadow:0 9px 24px rgba(110,75,65,.06)!important; } div[data-testid="stTextInput"] input::placeholder { color:#aa9791!important; -webkit-text-fill-color:#aa9791!important; opacity:1!important; }
 button[kind="primary"] { border:0!important; border-radius:10px!important; background:linear-gradient(135deg,#9e637d,#71566f)!important; color:#fffaf7!important; font-weight:800!important; box-shadow:0 10px 23px rgba(126,79,105,.22)!important; padding:10px 20px!important; }
-.stTabs { margin:18px 0 26px; padding:17px 17px 22px; border:1px solid rgba(71,49,55,.20); border-radius:22px; background:linear-gradient(145deg,rgba(66,48,57,.98),rgba(48,39,52,.98)); box-shadow:0 22px 50px rgba(77,49,61,.22),inset 0 1px 0 rgba(255,255,255,.08); }.stTabs [data-baseweb="tab-list"] { gap:5px; background:rgba(28,23,32,.55); padding:5px; border-radius:13px; border:1px solid rgba(255,236,236,.10); }.stTabs [data-baseweb="tab"],.stTabs [role="tab"] { border-radius:9px!important; color:#c9b6bd!important; background:transparent!important; font-weight:700!important; opacity:1!important; }.stTabs [data-baseweb="tab"] *,.stTabs [role="tab"] * { color:#c9b6bd!important; opacity:1!important; -webkit-text-fill-color:#c9b6bd!important; }.stTabs [aria-selected="true"],.stTabs [role="tab"][aria-selected="true"] { background:linear-gradient(135deg,rgba(236,157,177,.26),rgba(178,156,202,.22))!important; color:#fff7f6!important; box-shadow:inset 0 0 0 1px rgba(255,224,228,.18),0 5px 16px rgba(0,0,0,.18); }.stTabs [aria-selected="true"] *,.stTabs [role="tab"][aria-selected="true"] * { color:#fff7f6!important; -webkit-text-fill-color:#fff7f6!important; }.stTabs [data-baseweb="tab-highlight"] { background:#efa4b8!important; height:2px!important; border-radius:999px!important; }.stTabs .card { border-color:rgba(255,236,236,.13); background:linear-gradient(145deg,rgba(80,59,70,.92),rgba(55,45,58,.92)); box-shadow:0 14px 32px rgba(0,0,0,.18); }.stTabs .card h2,.stTabs .card h3,.stTabs .card b { color:#fff4f1; }.stTabs .muted { color:#ddcbd0; }.stTabs .small { color:#c6aeb7; }.stTabs .source { color:#f1afc2!important; background:rgba(72,52,65,.90); border-color:rgba(255,225,231,.15); box-shadow:0 10px 24px rgba(0,0,0,.16); }.stTabs .source:hover { border-color:rgba(242,169,189,.55); box-shadow:0 14px 30px rgba(241,157,183,.16); }.stTabs [data-testid="stCheckbox"] label { color:#f1dfe2!important; }.stTabs [data-testid="stProgressBar"] { background:rgba(255,235,237,.16)!important; }
+.stTabs { margin:18px 0 26px; padding:17px 17px 22px; border:1px solid rgba(71,49,55,.20); border-radius:22px; background:linear-gradient(145deg,rgba(66,48,57,.98),rgba(48,39,52,.98)); box-shadow:0 22px 50px rgba(77,49,61,.22),inset 0 1px 0 rgba(255,255,255,.08); }.stTabs [data-baseweb="tab-list"] { gap:5px; background:rgba(28,23,32,.55); padding:5px; border-radius:13px; border:1px solid rgba(255,236,236,.10); }.stTabs [data-baseweb="tab"],.stTabs [role="tab"] { border-radius:9px!important; color:#c9b6bd!important; background:transparent!important; font-weight:700!important; opacity:1!important; }.stTabs [data-baseweb="tab"] *,.stTabs [role="tab"] * { color:#c9b6bd!important; opacity:1!important; -webkit-text-fill-color:#c9b6bd!important; }.stTabs [aria-selected="true"],.stTabs [role="tab"][aria-selected="true"] { background:linear-gradient(135deg,rgba(236,157,177,.26),rgba(178,156,202,.22))!important; color:#fff7f6!important; box-shadow:inset 0 0 0 1px rgba(255,224,228,.18),0 5px 16px rgba(0,0,0,.18); }.stTabs [aria-selected="true"] *,.stTabs [role="tab"][aria-selected="true"] * { color:#fff7f6!important; -webkit-text-fill-color:#fff7f6!important; }.stTabs [data-baseweb="tab-highlight"] { background:#efa4b8!important; height:2px!important; border-radius:999px!important; }.stTabs .card { border-color:rgba(255,236,236,.13); background:linear-gradient(145deg,rgba(80,59,70,.92),rgba(55,45,58,.92)); box-shadow:0 14px 32px rgba(0,0,0,.18); }.stTabs .card h2,.stTabs .card h3,.stTabs .card b { color:#fff4f1!important; }.stTabs .card p,.stTabs .card li,.stTabs .card span,.stTabs .card strong,.stTabs .card label { color:#ead9dc!important; -webkit-text-fill-color:#ead9dc!important; }.stTabs .card .muted { color:#ddcbd0!important; -webkit-text-fill-color:#ddcbd0!important; }.stTabs .card .small { color:#f0c8d0!important; -webkit-text-fill-color:#f0c8d0!important; }.stTabs .small { color:#c6aeb7; }.stTabs .source { color:#f1afc2!important; background:rgba(72,52,65,.90); border-color:rgba(255,225,231,.15); box-shadow:0 10px 24px rgba(0,0,0,.16); }.stTabs .source:hover { border-color:rgba(242,169,189,.55); box-shadow:0 14px 30px rgba(241,157,183,.16); }.stTabs [data-testid="stCheckbox"] label { color:#f1dfe2!important; }.stTabs [data-testid="stProgressBar"] { background:rgba(255,235,237,.16)!important; }
 [data-testid="stCheckbox"] label { color:#765d5a!important; } [data-testid="stProgressBar"] > div > div { background:linear-gradient(90deg,#d693a5,#8a7092)!important; } [data-testid="stProgressBar"] { background:rgba(214,185,184,.34)!important; }
 [data-testid="stStatusWidget"] { background:rgba(255,250,247,.98)!important; color:#4b3837!important; border:1px solid rgba(116,80,76,.16)!important; box-shadow:0 18px 45px rgba(110,75,65,.14)!important; }
 div[data-testid="stChatInput"] { position:fixed!important; pointer-events:auto!important; bottom:22px!important; left:50%!important; transform:translateX(-50%); width:min(860px,calc(100% - 34px))!important; z-index:999!important; padding:0!important; background:transparent!important; } div[data-testid="stChatInput"] > div { border-radius:17px!important; background:rgba(255,251,248,.96)!important; backdrop-filter:blur(24px)!important; border:1px solid rgba(116,80,76,.18)!important; box-shadow:0 18px 55px rgba(110,75,65,.18)!important; } div[data-testid="stChatInput"] textarea { color:#493635!important; -webkit-text-fill-color:#493635!important; } div[data-testid="stChatInput"] textarea::placeholder { color:#aa9791!important; -webkit-text-fill-color:#aa9791!important; opacity:1!important; } div[data-testid="stChatInput"] button { background:linear-gradient(135deg,#9e637d,#71566f)!important; color:#fffaf7!important; border-radius:10px!important; }
@@ -100,14 +102,14 @@ def web_search(query: str) -> str:
     return "\n\n--- SOURCE ---\n\n".join(items)
 
 
-def make_agent():
+def make_agent(event_queue=None):
     llm = LLM(
         model=f"gemini/{MODEL}",
         api_key=GEMINI_API_KEY,
         temperature=0.2,
         use_native=False,
     )
-    return Agent(
+    agent_kwargs = dict(
         role="Learning Path Architect",
         goal="Research a goal and turn it into a practical, progressive, evidence-backed plan.",
         backstory=(
@@ -121,14 +123,68 @@ def make_agent():
         verbose=False,
         max_iter=10,
     )
+    if event_queue is not None:
+        def step_callback(step_output):
+            raw_step = (getattr(step_output, "raw", None) or getattr(step_output, "output", None) or getattr(step_output, "result", None) or str(step_output))
+            message = re.sub(r"\s+", " ", str(raw_step)).strip()
+            if message:
+                event_queue.put(("agent", message[:260]))
+        agent_kwargs["step_callback"] = step_callback
+    try:
+        return Agent(**agent_kwargs)
+    except TypeError:
+        if event_queue is not None:
+            event_queue.put(("system", "Live step callbacks are unavailable in this CrewAI runtime."))
+        agent_kwargs.pop("step_callback", None)
+        return Agent(**agent_kwargs)
 
 
-def run_agent(instruction: str, expected_output: str) -> str:
-    agent = make_agent()
+def run_agent(instruction: str, expected_output: str, event_queue=None) -> str:
+    agent = make_agent(event_queue)
     task = Task(description=instruction, expected_output=expected_output, agent=agent)
     crew = Crew(agents=[agent], tasks=[task], process=Process.sequential, verbose=False)
     result = crew.kickoff()
     return getattr(result, "raw", str(result))
+
+
+def run_agent_live(instruction: str, expected_output: str) -> str:
+    """Run CrewAI off the UI thread and stream step events over Streamlit's WebSocket."""
+    events = queue.Queue()
+    result = {"raw": None, "error": None}
+
+    def worker():
+        try:
+            result["raw"] = run_agent(instruction, expected_output, events)
+        except Exception as exc:
+            result["error"] = exc
+        finally:
+            events.put(("complete", "Agent run finished"))
+
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
+    timeline = [("connected", "Live channel connected"), ("system", "Agent is preparing the next reasoning step")]
+    feed = st.empty()
+
+    def render():
+        rows = []
+        for kind, message in timeline[-8:]:
+            icon = "↗" if kind == "connected" else ("•" if kind == "agent" else "✓")
+            state = " live" if kind == "agent" else ""
+            rows.append(f'<div class="activity stream-event{state}"><div class="activity-row"><span class="event-icon">{icon}</span><b>{escape(str(message))}</b></div><div class="small">LIVE AGENT EVENT</div></div>')
+        feed.markdown('<div class="stream-feed">' + "".join(rows) + '</div>', unsafe_allow_html=True)
+
+    render()
+    while thread.is_alive() or not events.empty():
+        try:
+            kind, message = events.get(timeout=0.12)
+            timeline.append((kind, message))
+            render()
+        except queue.Empty:
+            pass
+    thread.join(timeout=0.2)
+    if result["error"] is not None:
+        raise result["error"]
+    return result["raw"]
 
 
 def parse_json(raw: str):
@@ -138,8 +194,16 @@ def parse_json(raw: str):
 
 
 def context_text():
-    return "\n\n".join(
-        f"{m['role'].upper()}: {m['content']}" for m in st.session_state.messages[-12:]
+    recent = st.session_state.messages[-24:]
+    if not recent:
+        return ""
+    return (
+        "CONVERSATION MEMORY / PREFERENCE SIGNALS:\n"
+        "Use this history to maintain continuity. Treat explicit requests as reliable preferences "
+        "and infer recurring preferences cautiously; never invent personal facts.\n\n"
+        + "\n\n".join(
+            f"{m['role'].upper()}: {m['content']}" for m in recent
+        )
     )
 
 # -----------------------------
@@ -176,7 +240,7 @@ if st.button("Build my path  →", type="primary", use_container_width=False) an
     with st.status("Building your personalized path…", expanded=True) as status:
         st.markdown('<div class="activity"><div class="activity-row"><span class="dot done"></span><b>Understanding your goal</b></div><div class="small">Identifying prerequisites, scope and the destination.</div></div>', unsafe_allow_html=True)
         st.markdown('<div class="activity"><div class="activity-row"><span class="spinner"></span><b>Searching the web</b></div><div class="small">Finding current documentation, courses and high-quality resources.</div></div>', unsafe_allow_html=True)
-        raw = run_agent(
+        raw = run_agent_live(
             f"""
 USER GOAL:
 {goal.strip()}
@@ -187,6 +251,12 @@ PREVIOUS SESSION CONTEXT:
 Use the Web Research tool before answering.
 Return ONLY valid JSON with these keys:
 title, summary, prerequisites, roadmap, resources, projects, first_7_days, sources.
+
+Use the previous session context as continuity memory. Identify explicit and recurring preferences
+about resource format, platform, pacing, depth, teaching style, and project style. If the user has
+previously asked for YouTube videos, for example, prefer relevant YouTube resources again when they
+fit the new goal. Carry preferences into related courses and recommendations, but do not force an
+old preference when the user asks for something different.
 
 roadmap: list of objects with phase,title,objective,topics,estimated_time,deliverable.
 resources: list of title,type,url,why.
@@ -302,7 +372,7 @@ if prompt:
     with st.status("Working on your request…", expanded=True) as status:
         st.markdown('<div class="activity"><div class="activity-row"><span class="dot done"></span><b>Reading your current path</b></div><div class="small">Connecting your question with previous context.</div></div>', unsafe_allow_html=True)
         st.markdown('<div class="activity"><div class="activity-row"><span class="spinner"></span><b>Searching the web</b></div><div class="small">Researching fresh information when your question needs it.</div></div>', unsafe_allow_html=True)
-        raw = run_agent(
+        raw = run_agent_live(
             f"""
 CURRENT GOAL:
 {st.session_state.goal}
@@ -320,6 +390,13 @@ Answer the latest message directly and practically.
 Resolve references such as 'it', 'that', 'those', 'the previous phase', and 'the project'
 using the current plan and conversation. If the user asks for current information or resources,
 use Web Research and only provide URLs returned by that tool.
+
+Use CONVERSATION CONTEXT as persistent preference memory. Preserve explicit and recurring choices
+such as YouTube versus articles, preferred platforms, video-first learning, depth, pacing, tone,
+and project format across related requests. For example, if the user previously requested Python
+mastery YouTube videos, use that preference when recommending related Python courses or resources
+unless the latest message overrides it. Distinguish explicit preferences from cautious inferences,
+and never claim personal traits that the conversation does not support.
 """,
             "A direct, useful answer to the user's latest message.",
         )
