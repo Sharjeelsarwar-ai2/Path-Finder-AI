@@ -516,6 +516,7 @@ if st.session_state.plan:
             height = max(8, int((int(event.get("completed", 0)) / chart_max) * 100))
             label = str(event.get("timestamp", ""))[:10][-5:] or "Now"
             bars.append(f'<div class="analytics-bar-wrap"><div class="analytics-bar" style="height:{height}%"></div><div class="analytics-bar-label">{escape(label)}</div></div>')
+        chart_bars = "".join(bars)
         chips = "".join(f'<span class="skill-chip">{escape(skill)}</span>' for skill in unique_skills[:16]) or '<span class="analytics-note">Complete a roadmap phase to reveal acquired skills.</span>'
         st.markdown(
             f'<div class="analytics-shell"><div class="analytics-grid">'
@@ -523,7 +524,7 @@ if st.session_state.plan:
             f'<div class="analytics-stat"><div class="analytics-stat-value">{len(unique_skills)}</div><div class="analytics-stat-label">Skills acquired</div></div>'
             f'<div class="analytics-stat"><div class="analytics-stat-value">{len(events)}</div><div class="analytics-stat-label">Progress check-ins</div></div>'
             f'</div><div class="small">LEARNING VELOCITY / COMPLETED PHASES OVER TIME</div>'
-            f'<div class="analytics-chart">{''.join(bars)}</div>'
+            f'<div class="analytics-chart">{chart_bars}</div>'
             f'<div class="small" style="margin-top:18px">SKILL ACQUISITION / TOPICS FROM COMPLETED PHASES</div>'
             f'<div class="skill-chips">{chips}</div></div>',
             unsafe_allow_html=True,
