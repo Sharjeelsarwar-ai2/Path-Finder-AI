@@ -2,6 +2,7 @@ import json
 import queue
 import re
 import threading
+from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
 
@@ -34,6 +35,7 @@ section[data-testid="stBottomBlockContainer"]::before, section[data-testid="stBo
 .block-container { max-width:1190px; padding:24px 46px 185px; }
 .nav { position:sticky; top:14px; z-index:100; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:13px 2px; margin-bottom:28px; background:rgba(250,245,241,.76); backdrop-filter:blur(20px); }
 .brand { display:flex; align-items:center; font-size:13px; font-weight:800; letter-spacing:.3px; color:#3e3030; text-transform:uppercase; }.brand-mark { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:50%; margin-right:9px; color:#fffaf7; background:linear-gradient(145deg,#4b3e42,#a67187); box-shadow:0 7px 20px rgba(115,73,90,.22); }.nav-copy { color:#9a8883; font-size:10px; font-weight:800; letter-spacing:1.1px; text-transform:uppercase; }
+.hero-grid { position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(260px,.65fr); gap:32px; align-items:center; }.hero-copy { position:relative; z-index:1; }.hero-analytics { position:relative; z-index:2; padding:19px; border:1px solid rgba(103,64,72,.16); border-radius:18px; background:rgba(255,250,247,.30); backdrop-filter:blur(9px); box-shadow:0 15px 34px rgba(137,85,91,.10); }.hero-analytics-head { display:flex; justify-content:space-between; align-items:center; color:#6b4d56; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; }.hero-analytics-value { margin:12px 0 2px; color:#4c3639; font-size:33px; font-weight:800; letter-spacing:-2px; }.hero-analytics-label { color:#866a69; font-size:11px; }.hero-sparkline { display:flex; align-items:end; gap:6px; height:74px; margin-top:18px; padding-top:11px; border-top:1px solid rgba(115,77,83,.14); }.hero-sparkline i { display:block; flex:1; min-height:12px; border-radius:5px 5px 2px 2px; background:linear-gradient(180deg,#a7799c,#d791a8); box-shadow:0 3px 9px rgba(159,104,134,.16); animation:sparkRise .7s cubic-bezier(.2,.8,.2,1) both; transform-origin:bottom; }.hero-analytics-foot { display:flex; justify-content:space-between; gap:8px; margin-top:12px; color:#886d6d; font-family:'DM Mono',monospace; font-size:8px; text-transform:uppercase; }.analytics-shell { padding:19px; border:1px solid rgba(71,49,55,.20); border-radius:22px; background:linear-gradient(145deg,rgba(66,48,57,.98),rgba(48,39,52,.98)); box-shadow:0 22px 50px rgba(77,49,61,.22),inset 0 1px 0 rgba(255,255,255,.08); }.analytics-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-bottom:16px; }.analytics-stat { padding:15px; border:1px solid rgba(255,236,236,.13); border-radius:14px; background:rgba(80,59,70,.72); }.analytics-stat-value { color:#fff4f1; font-size:24px; font-weight:800; letter-spacing:-1px; }.analytics-stat-label { color:#d4b8c0; font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.7px; margin-top:4px; text-transform:uppercase; }.analytics-chart { display:flex; align-items:end; gap:9px; min-height:185px; padding:19px 12px 0; border:1px solid rgba(255,236,236,.11); border-radius:15px; background:rgba(28,23,32,.34); }.analytics-bar-wrap { display:flex; flex:1; height:165px; flex-direction:column; justify-content:end; align-items:center; gap:8px; }.analytics-bar { width:min(30px,70%); min-height:8px; border-radius:7px 7px 2px 2px; background:linear-gradient(180deg,#f0a6b8,#92739a); box-shadow:0 0 16px rgba(226,143,168,.24); animation:barRise .7s cubic-bezier(.2,.8,.2,1) both; transform-origin:bottom; }.analytics-bar-label { color:#cdb6bd; font-family:'DM Mono',monospace; font-size:8px; }.skill-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }.skill-chip { padding:7px 10px; border:1px solid rgba(241,185,199,.20); border-radius:999px; color:#f0cbd2; background:rgba(237,159,181,.10); font-family:'DM Mono',monospace; font-size:9px; }.analytics-note { color:#cdb6bd; font-size:12px; line-height:1.6; } @keyframes sparkRise { from { opacity:0; transform:scaleY(.15); } to { opacity:1; transform:scaleY(1); } } @keyframes barRise { from { opacity:0; transform:scaleY(.1); } to { opacity:1; transform:scaleY(1); } }
 .hero { position:relative; overflow:hidden; padding:48px 42px 46px; margin-bottom:28px; min-height:238px; border:1px solid rgba(154,91,103,.11); border-radius:25px; background:linear-gradient(112deg,#efb3c1 0%,#f4c2b1 48%,#f6ddd0 100%); box-shadow:0 24px 55px rgba(141,96,88,.13); }.hero:before { content:""; position:absolute; width:390px; height:260px; right:-100px; top:-85px; border-radius:50%; background:radial-gradient(circle,rgba(255,249,241,.55),rgba(255,249,241,0) 68%); }.hero:after { content:""; position:absolute; width:230px; height:230px; right:13%; bottom:-155px; border-radius:50%; background:rgba(190,155,203,.27); filter:blur(12px); }.eyebrow { position:relative; z-index:1; display:inline-flex; align-items:center; gap:8px; padding:7px 10px; border-radius:4px; background:rgba(255,250,247,.28); border:1px solid rgba(98,58,64,.15); color:#735157; font-family:'DM Mono',monospace; font-size:9px; font-weight:500; letter-spacing:1px; }.hero h1 { position:relative; z-index:1; max-width:630px; font-family:'Playfair Display',serif; font-size:clamp(46px,6vw,76px)!important; line-height:.98!important; letter-spacing:-3px!important; margin:22px 0 14px!important; color:#382b2a!important; }.gradient { background:linear-gradient(90deg,#9d526e,#725871 52%,#9e749b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }.subtitle { position:relative; z-index:1; max-width:620px; color:#755d5d; font-size:15px; line-height:1.7; }
 .section-title { display:flex; align-items:center; gap:12px; margin:31px 0 12px; font-size:10px; font-weight:800; color:#735f5c; letter-spacing:1.2px; text-transform:uppercase; }.section-title:after { content:""; height:1px; flex:1; background:linear-gradient(90deg,rgba(115,84,78,.20),transparent); }.muted { color:var(--soft-ink); line-height:1.7; }.small { color:#9b8782; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.25px; text-transform:uppercase; }.card { border:1px solid var(--line); border-radius:17px; padding:22px 24px; margin:12px 0; background:rgba(255,251,248,.78); box-shadow:0 13px 35px rgba(110,75,65,.07); }.card h2,.card h3 { color:#423333; margin-top:0; letter-spacing:-.5px; }.card h3 { font-size:18px; }.card b { color:#594242; }
 .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin:16px 0 22px; }.stat { position:relative; overflow:hidden; padding:16px 17px; border:1px solid rgba(116,80,76,.12); border-radius:15px; background:rgba(255,250,247,.68); box-shadow:0 8px 24px rgba(110,75,65,.04); transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease; }.stat:before { content:""; position:absolute; width:90px; height:90px; right:-34px; top:-38px; border-radius:50%; background:radial-gradient(circle,rgba(214,142,164,.30),transparent 68%); animation:metricGlow 2.8s ease-in-out infinite; }.stat:after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(115deg,transparent 28%,rgba(255,255,255,.56) 48%,transparent 68%); transform:translateX(-125%); animation:metricSweep 3.8s ease-in-out infinite; }.stat:hover { transform:translateY(-4px); border-color:rgba(193,116,142,.38); box-shadow:0 15px 32px rgba(169,94,119,.16); }.stat-value { position:relative; z-index:1; color:#634753; font-size:24px; font-weight:800; letter-spacing:-1px; animation:metricCount .75s cubic-bezier(.2,.8,.2,1) both; }.stat-label { position:relative; z-index:1; color:#9b8580; font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.8px; margin-top:4px; text-transform:uppercase; }.stat-trend { position:relative; z-index:1; display:inline-flex; align-items:center; gap:4px; margin-top:10px; color:#936078; font-family:'DM Mono',monospace; font-size:8px; letter-spacing:.5px; text-transform:uppercase; }.stat-trend:before { content:""; width:5px; height:5px; border-radius:50%; background:#ca7893; box-shadow:0 0 0 4px rgba(202,120,147,.13),0 0 13px rgba(202,120,147,.75); animation:trendPulse 1.8s ease-in-out infinite; } @keyframes metricCount { from { opacity:0; transform:translateY(8px) scale(.82); filter:blur(3px); } to { opacity:1; transform:translateY(0) scale(1); filter:blur(0); } } @keyframes metricGlow { 0%,100% { opacity:.45; transform:scale(.9); } 50% { opacity:.9; transform:scale(1.16); } } @keyframes metricSweep { 0%,35% { transform:translateX(-125%); } 70%,100% { transform:translateX(125%); } } @keyframes trendPulse { 0%,100% { opacity:.58; transform:scale(.85); } 50% { opacity:1; transform:scale(1.2); } }
@@ -53,7 +55,7 @@ button[kind="primary"] { border:0!important; border-radius:10px!important; backg
 div[data-testid="stChatInput"] { position:fixed!important; pointer-events:auto!important; bottom:22px!important; left:50%!important; transform:translateX(-50%); width:min(860px,calc(100% - 34px))!important; z-index:999!important; padding:0!important; background:transparent!important; } div[data-testid="stChatInput"] > div { border-radius:17px!important; background:rgba(255,251,248,.96)!important; backdrop-filter:blur(24px)!important; border:1px solid rgba(116,80,76,.18)!important; box-shadow:0 18px 55px rgba(110,75,65,.18)!important; } div[data-testid="stChatInput"] textarea { color:#493635!important; -webkit-text-fill-color:#493635!important; } div[data-testid="stChatInput"] textarea::placeholder { color:#aa9791!important; -webkit-text-fill-color:#aa9791!important; opacity:1!important; } div[data-testid="stChatInput"] button { background:linear-gradient(135deg,#9e637d,#71566f)!important; color:#fffaf7!important; border-radius:10px!important; }
 [data-testid="stExpander"] { border:1px solid rgba(116,80,76,.14)!important; border-radius:15px!important; background:rgba(255,250,247,.54)!important; box-shadow:0 9px 25px rgba(110,75,65,.05)!important; } [data-testid="stExpander"] summary { color:#765d5a!important; font-weight:800!important; letter-spacing:.2px; } [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p { color:#765d5a!important; } .progress-summary { padding:16px 19px; margin:9px 0; background:linear-gradient(110deg,rgba(85,62,75,.92),rgba(58,47,61,.92)); border-color:rgba(255,236,236,.13); box-shadow:0 10px 24px rgba(0,0,0,.15); }.progress-summary b { color:#fff4f1!important; }.progress-summary .small { color:#f0c8d0!important; }
 [data-testid="stChatMessage"] { background:rgba(255,250,247,.90); border:1px solid rgba(116,80,76,.17); border-radius:14px; padding:7px 13px; margin:10px 0; box-shadow:0 8px 22px rgba(110,75,65,.07); } [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"], [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p, [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] span { color:#513b3a!important; -webkit-text-fill-color:#513b3a!important; } [data-testid="stChatMessage"] [data-testid="chatAvatarIcon-user"] { background:#e98fa2!important; } [data-testid="stChatMessage"] [data-testid="chatAvatarIcon-assistant"] { background:#9b7a9c!important; }
-@media (max-width:760px) { .block-container{padding:18px 16px 170px}.nav-copy{display:none}.hero{padding:38px 27px;min-height:0}.hero h1{letter-spacing:-2px!important}.stat-grid{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:760px) { .block-container{padding:18px 16px 170px}.nav-copy{display:none}.hero{padding:38px 27px;min-height:0}.hero-grid{grid-template-columns:1fr;gap:22px}.hero h1{letter-spacing:-2px!important}.stat-grid,.analytics-grid{grid-template-columns:repeat(2,1fr)} }
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,6 +99,45 @@ def save_profile(profile):
     except OSError:
         pass
 
+ANALYTICS_PATH = Path.cwd() / ".pathfinder_analytics.json"
+
+def load_analytics():
+    try:
+        if ANALYTICS_PATH.exists():
+            data = json.loads(ANALYTICS_PATH.read_text(encoding="utf-8"))
+            return data if isinstance(data, list) else []
+    except (OSError, ValueError, TypeError):
+        pass
+    return []
+
+def save_analytics(events):
+    try:
+        ANALYTICS_PATH.write_text(json.dumps(events[-40:], ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+def record_analytics_snapshot(plan, progress):
+    completed_phases = [
+        phase for phase in plan.get("roadmap", [])
+        if progress.get(f"phase_{phase.get('phase')}", False)
+    ]
+    skills = []
+    for phase in completed_phases:
+        skills.extend(str(topic) for topic in phase.get("topics", []))
+    events = st.session_state.analytics
+    snapshot = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "completed": len(completed_phases),
+        "total": len(plan.get("roadmap", [])),
+        "skills": list(dict.fromkeys(skills))[:24],
+    }
+    signature = json.dumps({k: snapshot[k] for k in ("completed", "total", "skills")}, sort_keys=True)
+    if signature != st.session_state.last_analytics_signature:
+        events.append(snapshot)
+        st.session_state.analytics = events[-40:]
+        st.session_state.last_analytics_signature = signature
+        save_analytics(st.session_state.analytics)
+
 # -----------------------------
 # Session state
 # -----------------------------
@@ -106,6 +147,8 @@ for key, value in {
     "messages": [],
     "progress": {},
     "profile": load_profile(),
+    "analytics": load_analytics(),
+    "last_analytics_signature": "",
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -253,12 +296,21 @@ st.markdown(
 # -----------------------------
 # Hero
 # -----------------------------
+hero_plan = st.session_state.get("plan") or {}
+hero_total = len(hero_plan.get("roadmap", []))
+hero_completed = sum(1 for phase in hero_plan.get("roadmap", []) if st.session_state.progress.get(f"phase_{phase.get('phase')}", False))
+hero_events = st.session_state.get("analytics", [])[-6:]
+hero_heights = [max(14, min(92, 18 + int((event.get("completed", 0) / max(1, event.get("total", hero_total or 1))) * 74))) for event in hero_events] or [18, 25, 32, 42, 55]
+hero_spark = "".join(f'<i style="height:{height}%"></i>' for height in hero_heights)
 st.markdown(
-    '<div class="hero">'
+    f'<div class="hero"><div class="hero-grid"><div class="hero-copy">'
     '<div class="eyebrow"><span>✦</span> LEARNING PATH STUDIO <span style="opacity:.45">//</span> RESEARCH-LED</div>'
     '<h1>Write your next <span class="gradient">chapter.</span></h1>'
     '<div class="subtitle">Turn an ambitious idea into a clear, research-backed path. Pathfinder brings the right context, resources, practice and momentum into one calm workspace.</div>'
-    '</div>',
+    f'</div><div class="hero-analytics"><div class="hero-analytics-head"><span>Learning velocity</span><span>Live</span></div>'
+    f'<div class="hero-analytics-value">{hero_completed}/{hero_total or "—"}</div><div class="hero-analytics-label">roadmap phases completed</div>'
+    f'<div class="hero-sparkline">{hero_spark}</div><div class="hero-analytics-foot"><span>Progress pulse</span><span>Skill growth</span></div>'
+    '</div></div></div>',
     unsafe_allow_html=True,
 )
 
@@ -352,6 +404,7 @@ Make the plan progressive, realistic and practical rather than generic.
         st.markdown('<div class="activity"><div class="activity-row"><span class="spinner"></span><b>Designing your roadmap</b></div><div class="small">Turning the research into phases, practice and measurable outcomes.</div></div>', unsafe_allow_html=True)
         st.session_state.plan = parse_json(raw)
         st.session_state.progress = {}
+        st.session_state.last_analytics_signature = ""
         st.session_state.messages.append({"role": "user", "content": goal.strip()})
         st.session_state.messages.append({"role": "assistant", "content": "Created a research-backed path for this goal."})
         status.update(label="Your path is ready", state="complete", expanded=False)
@@ -375,7 +428,7 @@ if st.session_state.plan:
         unsafe_allow_html=True,
     )
 
-    tabs = st.tabs(["🧭 Roadmap", "📚 Resources", "🛠 Projects", "📅 7 Days", "✅ Progress"])
+    tabs = st.tabs(["🧭 Roadmap", "📚 Resources", "🛠 Projects", "📅 7 Days", "✅ Progress", "📈 Analytics"])
 
     with tabs[0]:
         for phase in plan.get("roadmap", []):
@@ -393,6 +446,7 @@ if st.session_state.plan:
                 value=st.session_state.progress.get(phase_key, False),
                 key=f"roadmap_{phase_key}",
             )
+        record_analytics_snapshot(plan, st.session_state.progress)
 
     with tabs[1]:
         for resource in plan.get("resources", []):
@@ -444,6 +498,36 @@ if st.session_state.plan:
                 f'<div class="small">{state} &nbsp;•&nbsp; {escape(str(phase.get("deliverable", "")))}</div></div>',
                 unsafe_allow_html=True,
             )
+
+    with tabs[5]:
+        events = st.session_state.analytics
+        latest = events[-1] if events else {"completed": hero_completed, "total": hero_total, "skills": []}
+        all_skills = []
+        for event in events:
+            all_skills.extend(event.get("skills", []))
+        unique_skills = list(dict.fromkeys(all_skills))
+        total_completed = int(latest.get("completed", 0))
+        total_phases = int(latest.get("total", hero_total or 0))
+        velocity = f"{total_completed}/{total_phases}" if total_phases else "—"
+        chart_events = events[-8:] or [latest]
+        chart_max = max([int(event.get("completed", 0)) for event in chart_events] + [1])
+        bars = []
+        for event in chart_events:
+            height = max(8, int((int(event.get("completed", 0)) / chart_max) * 100))
+            label = str(event.get("timestamp", ""))[:10][-5:] or "Now"
+            bars.append(f'<div class="analytics-bar-wrap"><div class="analytics-bar" style="height:{height}%"></div><div class="analytics-bar-label">{escape(label)}</div></div>')
+        chips = "".join(f'<span class="skill-chip">{escape(skill)}</span>' for skill in unique_skills[:16]) or '<span class="analytics-note">Complete a roadmap phase to reveal acquired skills.</span>'
+        st.markdown(
+            f'<div class="analytics-shell"><div class="analytics-grid">'
+            f'<div class="analytics-stat"><div class="analytics-stat-value">{velocity}</div><div class="analytics-stat-label">Phase velocity</div></div>'
+            f'<div class="analytics-stat"><div class="analytics-stat-value">{len(unique_skills)}</div><div class="analytics-stat-label">Skills acquired</div></div>'
+            f'<div class="analytics-stat"><div class="analytics-stat-value">{len(events)}</div><div class="analytics-stat-label">Progress check-ins</div></div>'
+            f'</div><div class="small">LEARNING VELOCITY / COMPLETED PHASES OVER TIME</div>'
+            f'<div class="analytics-chart">{''.join(bars)}</div>'
+            f'<div class="small" style="margin-top:18px">SKILL ACQUISITION / TOPICS FROM COMPLETED PHASES</div>'
+            f'<div class="skill-chips">{chips}</div></div>',
+            unsafe_allow_html=True,
+        )
 
     if plan.get("sources"):
         st.markdown('<div class="section-title">The research behind your path</div>', unsafe_allow_html=True)
