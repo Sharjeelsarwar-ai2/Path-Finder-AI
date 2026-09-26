@@ -3,6 +3,7 @@ import queue
 import re
 import threading
 from html import escape
+from pathlib import Path
 
 import streamlit as st
 from crewai import Agent, Crew, Process, Task, LLM
@@ -50,6 +51,7 @@ button[kind="primary"] { border:0!important; border-radius:10px!important; backg
 [data-testid="stCheckbox"] label { color:#765d5a!important; } [data-testid="stProgressBar"] > div > div { background:linear-gradient(90deg,#d693a5,#8a7092)!important; } [data-testid="stProgressBar"] { background:rgba(214,185,184,.34)!important; }
 [data-testid="stStatusWidget"] { background:rgba(255,250,247,.98)!important; color:#4b3837!important; border:1px solid rgba(116,80,76,.16)!important; box-shadow:0 18px 45px rgba(110,75,65,.14)!important; }
 div[data-testid="stChatInput"] { position:fixed!important; pointer-events:auto!important; bottom:22px!important; left:50%!important; transform:translateX(-50%); width:min(860px,calc(100% - 34px))!important; z-index:999!important; padding:0!important; background:transparent!important; } div[data-testid="stChatInput"] > div { border-radius:17px!important; background:rgba(255,251,248,.96)!important; backdrop-filter:blur(24px)!important; border:1px solid rgba(116,80,76,.18)!important; box-shadow:0 18px 55px rgba(110,75,65,.18)!important; } div[data-testid="stChatInput"] textarea { color:#493635!important; -webkit-text-fill-color:#493635!important; } div[data-testid="stChatInput"] textarea::placeholder { color:#aa9791!important; -webkit-text-fill-color:#aa9791!important; opacity:1!important; } div[data-testid="stChatInput"] button { background:linear-gradient(135deg,#9e637d,#71566f)!important; color:#fffaf7!important; border-radius:10px!important; }
+[data-testid="stExpander"] { border:1px solid rgba(116,80,76,.14)!important; border-radius:15px!important; background:rgba(255,250,247,.54)!important; box-shadow:0 9px 25px rgba(110,75,65,.05)!important; } [data-testid="stExpander"] summary { color:#765d5a!important; font-weight:800!important; letter-spacing:.2px; } [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p { color:#765d5a!important; } .progress-summary { padding:16px 19px; margin:9px 0; background:linear-gradient(110deg,rgba(85,62,75,.92),rgba(58,47,61,.92)); border-color:rgba(255,236,236,.13); box-shadow:0 10px 24px rgba(0,0,0,.15); }.progress-summary b { color:#fff4f1!important; }.progress-summary .small { color:#f0c8d0!important; }
 [data-testid="stChatMessage"] { background:rgba(255,250,247,.90); border:1px solid rgba(116,80,76,.17); border-radius:14px; padding:7px 13px; margin:10px 0; box-shadow:0 8px 22px rgba(110,75,65,.07); } [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"], [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] p, [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] span { color:#513b3a!important; -webkit-text-fill-color:#513b3a!important; } [data-testid="stChatMessage"] [data-testid="chatAvatarIcon-user"] { background:#e98fa2!important; } [data-testid="stChatMessage"] [data-testid="chatAvatarIcon-assistant"] { background:#9b7a9c!important; }
 @media (max-width:760px) { .block-container{padding:18px 16px 170px}.nav-copy{display:none}.hero{padding:38px 27px;min-height:0}.hero h1{letter-spacing:-2px!important}.stat-grid{grid-template-columns:repeat(2,1fr)} }
 </style>
@@ -68,6 +70,34 @@ if not GEMINI_API_KEY or not TAVILY_API_KEY:
     st.stop()
 
 # -----------------------------
+# Persistent learner profile
+# -----------------------------
+PROFILE_PATH = Path.cwd() / ".pathfinder_profile.json"
+PROFILE_DEFAULTS = {
+    "experience_level": "Intermediate",
+    "weekly_hours": 5,
+    "learning_style": "Project-first",
+    "preferred_resources": ["YouTube", "Official documentation"],
+    "target_role": "",
+    "current_focus": "",
+}
+
+def load_profile():
+    try:
+        if PROFILE_PATH.exists():
+            saved = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
+            return {**PROFILE_DEFAULTS, **saved}
+    except (OSError, ValueError, TypeError):
+        pass
+    return PROFILE_DEFAULTS.copy()
+
+def save_profile(profile):
+    try:
+        PROFILE_PATH.write_text(json.dumps(profile, ensure_ascii=False, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+
+# -----------------------------
 # Session state
 # -----------------------------
 for key, value in {
@@ -75,6 +105,7 @@ for key, value in {
     "goal": "",
     "messages": [],
     "progress": {},
+    "profile": load_profile(),
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -206,6 +237,10 @@ def context_text():
         )
     )
 
+
+def profile_context():
+    return json.dumps(st.session_state.get("profile", PROFILE_DEFAULTS), ensure_ascii=False)
+
 # -----------------------------
 # Navigation
 # -----------------------------
@@ -235,6 +270,48 @@ goal = st.text_input(
     label_visibility="collapsed",
 )
 
+with st.expander("Learner profile / personalize every path", expanded=False):
+    profile = st.session_state.profile
+    profile_cols = st.columns([1, 1, 1])
+    with profile_cols[0]:
+        experience_level = st.selectbox(
+            "Experience level",
+            ["Beginner", "Intermediate", "Advanced"],
+            index=["Beginner", "Intermediate", "Advanced"].index(profile.get("experience_level", "Intermediate")),
+            key="profile_experience_level",
+        )
+        weekly_hours = st.number_input(
+            "Hours available / week", min_value=1, max_value=60,
+            value=int(profile.get("weekly_hours", 5)), step=1, key="profile_weekly_hours"
+        )
+    with profile_cols[1]:
+        learning_style = st.selectbox(
+            "Learning style",
+            ["Project-first", "Video-first", "Theory-first", "Balanced"],
+            index=["Project-first", "Video-first", "Theory-first", "Balanced"].index(profile.get("learning_style", "Project-first")),
+            key="profile_learning_style",
+        )
+        preferred_resources = st.multiselect(
+            "Preferred resources",
+            ["YouTube", "Official documentation", "Interactive courses", "Books", "Articles"],
+            default=[x for x in profile.get("preferred_resources", []) if x in ["YouTube", "Official documentation", "Interactive courses", "Books", "Articles"]],
+            key="profile_preferred_resources",
+        )
+    with profile_cols[2]:
+        target_role = st.text_input("Target role", value=profile.get("target_role", ""), placeholder="e.g. AI engineer", key="profile_target_role")
+        current_focus = st.text_input("Current focus", value=profile.get("current_focus", ""), placeholder="e.g. Python + agents", key="profile_current_focus")
+    if st.button("Save learner profile", key="save_learner_profile"):
+        st.session_state.profile = {
+            "experience_level": experience_level,
+            "weekly_hours": weekly_hours,
+            "learning_style": learning_style,
+            "preferred_resources": preferred_resources,
+            "target_role": target_role.strip(),
+            "current_focus": current_focus.strip(),
+        }
+        save_profile(st.session_state.profile)
+        st.success("Your learner profile is saved for future paths.")
+
 if st.button("Build my path  →", type="primary", use_container_width=False) and goal.strip():
     st.session_state.goal = goal.strip()
     with st.status("Building your personalized path…", expanded=True) as status:
@@ -247,6 +324,9 @@ USER GOAL:
 
 PREVIOUS SESSION CONTEXT:
 {context_text() or 'No previous conversation.'}
+
+LEARNER PROFILE:
+{profile_context()}
 
 Use the Web Research tool before answering.
 Return ONLY valid JSON with these keys:
@@ -307,6 +387,12 @@ if st.session_state.plan:
                 f'<div class="small">Time: {escape(str(phase.get("estimated_time", "")))} &nbsp;•&nbsp; Deliverable: {escape(str(phase.get("deliverable", "")))}</div></div>',
                 unsafe_allow_html=True,
             )
+            phase_key = f"phase_{phase.get('phase')}"
+            st.session_state.progress[phase_key] = st.checkbox(
+                "Mark this phase complete",
+                value=st.session_state.progress.get(phase_key, False),
+                key=f"roadmap_{phase_key}",
+            )
 
     with tabs[1]:
         for resource in plan.get("resources", []):
@@ -339,15 +425,25 @@ if st.session_state.plan:
             )
 
     with tabs[4]:
+        values = list(st.session_state.progress.values())
+        completed = sum(values)
+        total = len(plan.get("roadmap", []))
+        ratio = completed / total if total else 0
+        st.markdown(
+            f'<div class="card"><div class="small">ROADMAP MOMENTUM</div>'
+            f'<h3>{completed} of {total} phases complete</h3>'
+            f'<p class="muted">Use the checkboxes inside each roadmap phase to keep your path current.</p></div>',
+            unsafe_allow_html=True,
+        )
+        st.progress(ratio)
         for phase in plan.get("roadmap", []):
             key = f"phase_{phase.get('phase')}"
-            st.session_state.progress[key] = st.checkbox(
-                f"Phase {phase.get('phase')}: {phase.get('title')}",
-                value=st.session_state.progress.get(key, False),
-                key=f"cb_{key}",
+            state = "Complete" if st.session_state.progress.get(key, False) else "Up next"
+            st.markdown(
+                f'<div class="card progress-summary"><b>Phase {escape(str(phase.get("phase", "")))}: {escape(str(phase.get("title", "")))}</b>'
+                f'<div class="small">{state} &nbsp;•&nbsp; {escape(str(phase.get("deliverable", "")))}</div></div>',
+                unsafe_allow_html=True,
             )
-        values = list(st.session_state.progress.values())
-        st.progress(sum(values) / len(values) if values else 0)
 
     if plan.get("sources"):
         st.markdown('<div class="section-title">The research behind your path</div>', unsafe_allow_html=True)
@@ -379,6 +475,9 @@ CURRENT GOAL:
 
 CURRENT PLAN:
 {json.dumps(st.session_state.plan, ensure_ascii=False)[:18000]}
+
+LEARNER PROFILE:
+{profile_context()}
 
 CONVERSATION CONTEXT:
 {context_text()}
